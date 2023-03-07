@@ -9,6 +9,7 @@ struct Node<T> {
 pub struct Graph<T> {
 	nodes: Vec<Node<T>>,
 	adjacencies: Vec<f32>,
+	max_adjacency: f32,
 }
 
 impl<T> Graph<T> {
@@ -16,6 +17,7 @@ impl<T> Graph<T> {
 		Self {
 			nodes: Vec::new(),
 			adjacencies: Vec::new(),
+			max_adjacency: 0.0,
 		}
 	}
 
@@ -38,6 +40,7 @@ impl<T> Graph<T> {
 
 		let index = a*(a-1)/2+b;
 
+		self.max_adjacency = self.max_adjacency.max(v);
 		self.adjacencies[index] = v;
 	}
 
@@ -63,6 +66,33 @@ impl<T> Graph<T> {
 
 		for n in &self.nodes {
 			draw_circle(n.x, n.y, 1.0, RED);
+		}
+	}
+
+	pub fn lerp_update(&mut self) {
+		if self.max_adjacency == 0.0 { return; }
+
+		let t = 0.1;
+
+		for b in 0..self.nodes.len() {
+			for a in (b+1)..self.nodes.len() {
+				let adj = self.get_adjacency(a, b);
+				let adj_norm = adj/self.max_adjacency;
+
+				let target_dist = 18.0 - 14.0*adj_norm;
+				
+				let direction = (self.nodes[b].x - self.nodes[a].x, self.nodes[b].y - self.nodes[a].y);
+				let dist = direction.0.hypot(direction.1);
+				let direction = (direction.0 / dist, direction.1 / dist);
+
+				let displacement = dist - target_dist;
+
+				self.nodes[a].x += direction.0*displacement*t*(0.5+0.5*adj_norm);
+				self.nodes[a].y += direction.1*displacement*t*(0.5+0.5*adj_norm);
+
+				self.nodes[b].x -= direction.0*displacement*t*(0.5+0.5*adj_norm);
+				self.nodes[b].y -= direction.1*displacement*t*(0.5+0.5*adj_norm);
+			}
 		}
 	}
 }

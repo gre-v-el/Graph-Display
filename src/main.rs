@@ -2,24 +2,19 @@ mod controls;
 mod helper;
 mod graph;
 
+use std::time::{Instant, UNIX_EPOCH, SystemTime};
+
 use controls::Controls;
 use graph::Graph;
 use macroquad::{prelude::*, rand};
 
 #[macroquad::main("graph")]
 async fn main() {
+	rand::srand(SystemTime::UNIX_EPOCH.elapsed().unwrap().as_secs());
+
 	let mut controls = Controls::new();
-	let mut graph = Graph::<usize>::new();
-
-	for i in 0..10 {
-		graph.add_node(i, rand::gen_range(-15.0, 15.0), rand::gen_range(-15.0, 15.0));
-	}
-	for _ in 0..10 {
-		let i = rand::gen_range(0, graph.num_nodes());
-		let j = rand::gen_range(0, graph.num_nodes());
-
-		graph.set_adjacency(i, j, rand::gen_range(1.0, 10.0));
-	}
+	
+	let mut graph = generate_graph();
 
     loop {
 		clear_background(BLACK);
@@ -27,12 +22,33 @@ async fn main() {
 		set_camera(controls.camera());
 
 		draw_grid(&controls);
+
+		graph.lerp_update();
 		graph.draw();
 
+		if is_key_down(KeyCode::R) {
+			graph = generate_graph();
+		}
 
 		
 		next_frame().await
 	}
+}
+
+fn generate_graph() -> Graph<usize> {
+	let mut graph = Graph::<usize>::new();
+
+	for i in 0..10 {
+		graph.add_node(i, rand::gen_range(-15.0, 15.0), rand::gen_range(-15.0, 15.0));
+	}
+	for _ in 0..15 {
+		let i = rand::gen_range(0, graph.num_nodes());
+		let j = rand::gen_range(0, graph.num_nodes());
+
+		graph.set_adjacency(i, j, rand::gen_range(1.0, 10.0));
+	}
+
+	graph
 }
 
 fn draw_grid(controls: &Controls) {
