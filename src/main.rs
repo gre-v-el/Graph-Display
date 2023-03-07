@@ -3,11 +3,23 @@ mod helper;
 mod graph;
 
 use controls::Controls;
-use macroquad::prelude::*;
+use graph::Graph;
+use macroquad::{prelude::*, rand};
 
 #[macroquad::main("graph")]
 async fn main() {
 	let mut controls = Controls::new();
+	let mut graph = Graph::<usize>::new();
+
+	for i in 0..10 {
+		graph.add_node(i, rand::gen_range(-15.0, 15.0), rand::gen_range(-15.0, 15.0));
+	}
+	for _ in 0..10 {
+		let i = rand::gen_range(0, graph.num_nodes());
+		let j = rand::gen_range(0, graph.num_nodes());
+
+		graph.set_adjacency(i, j, rand::gen_range(1.0, 10.0));
+	}
 
     loop {
 		clear_background(BLACK);
@@ -15,7 +27,7 @@ async fn main() {
 		set_camera(controls.camera());
 
 		draw_grid(&controls);
-
+		graph.draw();
 
 
 		

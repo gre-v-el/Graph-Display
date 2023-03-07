@@ -13,7 +13,7 @@ impl Controls {
 	pub fn new() -> Self {
 		let camera = Camera2D {
 			target: vec2(0.0, 0.0),
-			zoom: vec2(0.1, 0.1 * screen_width()/screen_height()),
+			zoom: vec2(0.01, 0.01 * screen_width()/screen_height()),
 			..Default::default()
 		};
 
