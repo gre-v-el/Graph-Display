@@ -2,8 +2,10 @@ use macroquad::prelude::*;
 
 struct Node<T> {
 	value: T,
-	x: f32,
-	y: f32,
+	mass: f32,
+	pos: Vec2,
+	v: Vec2,
+	f: Vec2,
 }
 
 pub struct Graph<T> {
@@ -26,7 +28,7 @@ impl<T> Graph<T> {
 	}
 
 	pub fn add_node(&mut self, value: T, x: f32, y: f32) {
-		self.nodes.push(Node {value, x, y});
+		self.nodes.push(Node {value, mass: 1.0, pos: vec2(x, y), v: vec2(0.0, 0.0), f: vec2(0.0, 0.0)});
 		while self.adjacencies.len() < self.nodes.len()*(self.nodes.len()+1)/2 {
 			self.adjacencies.push(0.0);
 		}
@@ -60,19 +62,19 @@ impl<T> Graph<T> {
 			for a in (b+1)..self.nodes.len() {
 				let adj = self.get_adjacency(a, b);
 
-				draw_line(self.nodes[a].x, self.nodes[a].y, self.nodes[b].x, self.nodes[b].y, adj/20.0, WHITE);
+				draw_line(self.nodes[a].pos.x, self.nodes[a].pos.y, self.nodes[b].pos.x, self.nodes[b].pos.y, adj/20.0, WHITE);
 			}
 		}
 
 		for n in &self.nodes {
-			draw_circle(n.x, n.y, 1.0, RED);
+			draw_circle(n.pos.x, n.pos.y, 1.0, RED);
 		}
 	}
 
 	pub fn lerp_update(&mut self) {
 		if self.max_adjacency == 0.0 { return; }
 
-		let t = 0.1;
+		let t = 0.3;
 
 		for b in 0..self.nodes.len() {
 			for a in (b+1)..self.nodes.len() {
@@ -81,18 +83,58 @@ impl<T> Graph<T> {
 
 				let target_dist = 18.0 - 14.0*adj_norm;
 				
-				let direction = (self.nodes[b].x - self.nodes[a].x, self.nodes[b].y - self.nodes[a].y);
+				let direction = (self.nodes[b].pos.x - self.nodes[a].pos.x, self.nodes[b].pos.y - self.nodes[a].pos.y);
 				let dist = direction.0.hypot(direction.1);
 				let direction = (direction.0 / dist, direction.1 / dist);
 
 				let displacement = dist - target_dist;
 
-				self.nodes[a].x += direction.0*displacement*t*(0.5+0.5*adj_norm);
-				self.nodes[a].y += direction.1*displacement*t*(0.5+0.5*adj_norm);
+				self.nodes[a].pos.x += direction.0*displacement*t*(0.5+0.5*adj_norm);
+				self.nodes[a].pos.y += direction.1*displacement*t*(0.5+0.5*adj_norm);
 
-				self.nodes[b].x -= direction.0*displacement*t*(0.5+0.5*adj_norm);
-				self.nodes[b].y -= direction.1*displacement*t*(0.5+0.5*adj_norm);
+				self.nodes[b].pos.x -= direction.0*displacement*t*(0.5+0.5*adj_norm);
+				self.nodes[b].pos.y -= direction.1*displacement*t*(0.5+0.5*adj_norm);
 			}
+		}
+	}
+
+	pub fn spring_update(&mut self) {
+		if self.max_adjacency == 0.0 { return; }
+
+		let dt = 0.05;
+
+		for n in &mut self.nodes {
+			n.f = vec2(0.0, 0.0);
+		}
+
+		for b in 0..self.nodes.len() {
+			for a in (b+1)..self.nodes.len() {
+				let adj = self.get_adjacency(a, b);
+				let adj_norm = adj/self.max_adjacency;
+
+				let target_dist = 18.0 - 14.0*adj_norm;
+
+				let direction = (self.nodes[b].pos.x - self.nodes[a].pos.x, self.nodes[b].pos.y - self.nodes[a].pos.y);
+				let dist = direction.0.hypot(direction.1);
+				let direction = (direction.0 / dist, direction.1 / dist);
+
+				let displacement = dist - target_dist;
+
+				// F = -kx
+				// k - spring constant, set to normalized adjacency
+
+				self.nodes[a].f.x += adj_norm * displacement * direction.0;
+				self.nodes[a].f.y += adj_norm * displacement * direction.1;
+
+				self.nodes[b].f.x -= adj_norm * displacement * direction.0;
+				self.nodes[b].f.y -= adj_norm * displacement * direction.1;
+			}
+		}
+
+		
+		for n in &mut self.nodes {
+			n.v += n.f * dt / n.mass;
+			n.pos += n.v * dt;
 		}
 	}
 }

@@ -23,7 +23,7 @@ async fn main() {
 
 		draw_grid(&controls);
 
-		graph.lerp_update();
+		graph.spring_update();
 		graph.draw();
 
 		if is_key_down(KeyCode::R) {
@@ -39,7 +39,7 @@ fn generate_graph() -> Graph<usize> {
 	let mut graph = Graph::<usize>::new();
 
 	for i in 0..10 {
-		graph.add_node(i, rand::gen_range(-15.0, 15.0), rand::gen_range(-15.0, 15.0));
+		graph.add_node(i, rand::gen_range(-1.0, 1.0), rand::gen_range(-1.0, 1.0));
 	}
 	for _ in 0..15 {
 		let i = rand::gen_range(0, graph.num_nodes());
