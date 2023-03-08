@@ -101,7 +101,8 @@ impl<T> Graph<T> {
 	pub fn spring_update(&mut self) {
 		if self.max_adjacency == 0.0 { return; }
 
-		let dt = 0.05;
+		let dt = 0.1;
+		let friction = 0.5;
 
 		for n in &mut self.nodes {
 			n.f = vec2(0.0, 0.0);
@@ -133,6 +134,7 @@ impl<T> Graph<T> {
 
 		
 		for n in &mut self.nodes {
+			n.f -= n.v * friction;
 			n.v += n.f * dt / n.mass;
 			n.pos += n.v * dt;
 		}
