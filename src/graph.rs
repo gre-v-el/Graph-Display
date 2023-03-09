@@ -34,6 +34,25 @@ impl<T> Graph<T> {
 		}
 	}
 
+	pub fn nearest_node(&self, pos: Vec2) -> usize {
+		let mut nearest = 0;
+		let mut nearest_dist = f32::MAX;
+		for i in 0..self.num_nodes() {
+			let dist = pos.distance(self.nodes[i].pos);
+			if dist < nearest_dist {
+				nearest_dist = dist;
+				nearest = i;
+			}
+		}
+
+		nearest
+	}
+
+	pub fn drag_node(&mut self, node: usize, pos: Vec2) {
+		let node_pos = self.nodes[node].pos;
+		self.nodes[node].f += (pos - node_pos)*0.5;
+	}
+
 	pub fn set_adjacency(&mut self, i: usize, j: usize, v: f32) {
 		if i.max(j) >= self.nodes.len() || i == j { return; }
 
@@ -57,7 +76,7 @@ impl<T> Graph<T> {
 		self.adjacencies[index]
 	}
 
-	pub fn draw(&self) {
+	pub fn draw(&self, to_str: &dyn Fn(&T) -> String, font: Font) {
 		for b in 0..self.nodes.len() {
 			for a in (b+1)..self.nodes.len() {
 				let adj = self.get_adjacency(a, b);
@@ -68,6 +87,11 @@ impl<T> Graph<T> {
 
 		for n in &self.nodes {
 			draw_circle(n.pos.x, n.pos.y, 1.0, RED);
+			let txt = to_str(&n.value);
+
+			let dims = measure_text(txt.as_str(), Some(font), 64, 0.02);
+			
+			draw_text_ex(txt.as_str(), n.pos.x - dims.width/2.0, n.pos.y + dims.height/2.0, TextParams { font: font, font_size: 64, font_scale: 0.02, font_scale_aspect: 1.0, rotation: 0.0, color: WHITE });
 		}
 	}
 
@@ -125,7 +149,7 @@ impl<T> Graph<T> {
 				let adj = self.get_adjacency(a, b);
 				let adj_norm = adj/self.max_adjacency;
 
-				let target_dist = 18.0 - 14.0*adj_norm;
+				let target_dist = 20.0 - 20.0*adj_norm;
 
 				let direction = (self.nodes[b].pos.x - self.nodes[a].pos.x, self.nodes[b].pos.y - self.nodes[a].pos.y);
 				let dist = direction.0.hypot(direction.1);
@@ -136,18 +160,19 @@ impl<T> Graph<T> {
 				// F = -kx
 				// k - spring constant, set to normalized adjacency
 
-				self.nodes[a].f.x += adj_norm * displacement * direction.0;
-				self.nodes[a].f.y += adj_norm * displacement * direction.1;
+				let k = adj_norm + 0.005;
+				self.nodes[a].f.x += k * displacement * direction.0;
+				self.nodes[a].f.y += k * displacement * direction.1;
 
-				self.nodes[b].f.x -= adj_norm * displacement * direction.0;
-				self.nodes[b].f.y -= adj_norm * displacement * direction.1;
+				self.nodes[b].f.x -= k * displacement * direction.0;
+				self.nodes[b].f.y -= k * displacement * direction.1;
 			}
 		}
 
 		
 	}
 
-	pub fn separate_nodes_update(&mut self, target: f32, force: f32) {
+	pub fn separate_nodes_update(&mut self, force: f32) {
 		
 		for b in 0..self.nodes.len() {
 			for a in (b+1)..self.nodes.len() {
@@ -155,21 +180,15 @@ impl<T> Graph<T> {
 				let direction = (self.nodes[b].pos.x - self.nodes[a].pos.x, self.nodes[b].pos.y - self.nodes[a].pos.y);
 				let dist = direction.0.hypot(direction.1);
 				let direction = (direction.0 / dist, direction.1 / dist);
-
-				let delta = if dist < target {
-					dist - target
-				} else if dist > 2.0*target {
-					// 0.5*(dist - 2.0*target) 
-					0.0
-				} else {
-					0.0
-				};
 				
-				self.nodes[a].f.x += force * delta * direction.0;
-				self.nodes[a].f.y += force * delta * direction.1;
+				let padding = 1.0;
+				let amount = 1.0/(dist + padding)/(dist + padding);
+				
+				self.nodes[a].f.x -= force * amount * direction.0;
+				self.nodes[a].f.y -= force * amount * direction.1;
 			
-				self.nodes[b].f.x -= force * delta * direction.0;
-				self.nodes[b].f.y -= force * delta * direction.1;
+				self.nodes[b].f.x += force * amount * direction.0;
+				self.nodes[b].f.y += force * amount * direction.1;
 			}
 		}
 	}
