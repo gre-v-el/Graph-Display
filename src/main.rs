@@ -14,7 +14,7 @@ async fn main() {
 
 	let mut controls = Controls::new();
 	
-	let mut graph = generate_graph();
+	let mut graph = generate_random_graph();
 
     loop {
 		clear_background(BLACK);
@@ -23,15 +23,15 @@ async fn main() {
 
 		draw_grid(&controls);
 
-		graph.reset_force();
 		graph.spring_update();
-		graph.separate_nodes_update(10.0, 0.2);
-		graph.friction_update(0.5);
+		graph.lerp_update();
+		// graph.separate_nodes_update(10.0, 0.2);
+		// graph.friction_update(0.3);
 		graph.kinematic_update(0.1);
 		graph.draw();
 
 		if is_key_down(KeyCode::R) {
-			graph = generate_graph();
+			graph = generate_random_graph();
 		}
 
 		
@@ -39,11 +39,11 @@ async fn main() {
 	}
 }
 
-fn generate_graph() -> Graph<usize> {
+fn generate_random_graph() -> Graph<usize> {
 	let mut graph = Graph::<usize>::new();
 
 	for i in 0..10 {
-		graph.add_node(i, rand::gen_range(-1.0, 1.0), rand::gen_range(-1.0, 1.0));
+		graph.add_node(i, rand::gen_range(-10.0, 10.0), rand::gen_range(-10.0, 10.0));
 	}
 	for _ in 0..15 {
 		let i = rand::gen_range(0, graph.num_nodes());
@@ -54,6 +54,8 @@ fn generate_graph() -> Graph<usize> {
 
 	graph
 }
+
+
 
 fn draw_grid(controls: &Controls) {
 	let pixel = (controls.camera().screen_to_world((0.0, 0.0).into()) - controls.camera().screen_to_world((0.0, 1.0).into())).y;
@@ -67,7 +69,7 @@ fn draw_grid(controls: &Controls) {
 		left_top.y - right_bottom.y + 2.0*margin
 	);
 
-	let target_lines = 40.0;
+	let target_lines = 20.0;
 	let spacing = (area.w/target_lines).log2().floor().exp2();
 	let odd_opacity = ((area.w/target_lines) - spacing)/spacing;
 	let odd_opacity = (odd_opacity*3.0).min(1.0);

@@ -74,6 +74,10 @@ impl<T> Graph<T> {
 	pub fn lerp_update(&mut self) {
 		if self.max_adjacency == 0.0 { return; }
 
+		for a in 0..self.nodes.len() {
+			self.nodes[a].v = vec2(0.0, 0.0);
+		}
+
 		let t = 0.3;
 
 		for b in 0..self.nodes.len() {
@@ -89,18 +93,12 @@ impl<T> Graph<T> {
 
 				let displacement = dist - target_dist;
 
-				self.nodes[a].pos.x += direction.0*displacement*t*(0.5+0.5*adj_norm);
-				self.nodes[a].pos.y += direction.1*displacement*t*(0.5+0.5*adj_norm);
+				self.nodes[a].v.x += direction.0*displacement*t*(0.5+0.5*adj_norm);
+				self.nodes[a].v.y += direction.1*displacement*t*(0.5+0.5*adj_norm);
 
-				self.nodes[b].pos.x -= direction.0*displacement*t*(0.5+0.5*adj_norm);
-				self.nodes[b].pos.y -= direction.1*displacement*t*(0.5+0.5*adj_norm);
+				self.nodes[b].v.x -= direction.0*displacement*t*(0.5+0.5*adj_norm);
+				self.nodes[b].v.y -= direction.1*displacement*t*(0.5+0.5*adj_norm);
 			}
-		}
-	}
-
-	pub fn reset_force(&mut self) {
-		for n in &mut self.nodes {
-			n.f = vec2(0.0, 0.0);
 		}
 	}
 
@@ -109,6 +107,7 @@ impl<T> Graph<T> {
 		for n in &mut self.nodes {
 			n.v += n.f * dt / n.mass;
 			n.pos += n.v * dt;
+			n.f = vec2(0.0, 0.0);
 		}
 	}
 
@@ -159,6 +158,9 @@ impl<T> Graph<T> {
 
 				let delta = if dist < target {
 					dist - target
+				} else if dist > 2.0*target {
+					// 0.5*(dist - 2.0*target) 
+					0.0
 				} else {
 					0.0
 				};
@@ -170,7 +172,52 @@ impl<T> Graph<T> {
 				self.nodes[b].f.y -= force * delta * direction.1;
 			}
 		}
+	}
+
+	pub fn straighten_connections_update(&mut self) {
+		/*
+			b			    	  b
+			|						\
+			|	         	VS	      a
+			|							\
+			a-------c			          c
+			
+			The right one is more readable
+			So in the left scenario, apply force to A in the direction of the smaller angle:
+			(Conservation of energy shall not be violated! - b and c each get a force of half the value and opposite direction)
+
+			b  F
+			| /
+			a---c
+
+			F ~ adj(a, b) (for any 0 adjacency do nothing)
+			F ~ adj(a, c)
+			F ~ 0 when ABC are colinear with A in the middle, 1.0 when colinear with A on an extreme, interpolated
+
+			angle Fab = angle Fac
+		 */
 
 
+		// for each triangle in the graph
+		for a in 0..self.nodes.len() {
+			for b in 0..self.nodes.len() {
+				if a == b { continue; }
+
+				for c in 0..self.nodes.len() {
+					if a == c { continue; }
+
+					let dot = (self.nodes[b].pos - self.nodes[a].pos).normalize_or_zero().dot((self.nodes[c].pos - self.nodes[a].pos).normalize_or_zero());
+					let dot = dot*0.5 + 0.5;
+
+					let force = 0.01 * self.get_adjacency(a, b) * self.get_adjacency(a, c) * dot;
+
+					let direction = (0.5*(self.nodes[b].pos + self.nodes[c].pos) - self.nodes[a].pos).normalize_or_zero();
+
+					self.nodes[a].f += direction * force;
+					self.nodes[b].f -= direction * force * 0.5;
+					self.nodes[c].f -= direction * force * 0.5;
+				}
+			}
+		}
 	}
 }
