@@ -23,7 +23,11 @@ async fn main() {
 
 		draw_grid(&controls);
 
+		graph.reset_force();
 		graph.spring_update();
+		graph.separate_nodes_update(10.0, 0.2);
+		graph.friction_update(0.5);
+		graph.kinematic_update(0.1);
 		graph.draw();
 
 		if is_key_down(KeyCode::R) {

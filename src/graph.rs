@@ -98,15 +98,28 @@ impl<T> Graph<T> {
 		}
 	}
 
-	pub fn spring_update(&mut self) {
-		if self.max_adjacency == 0.0 { return; }
-
-		let dt = 0.1;
-		let friction = 0.5;
-
+	pub fn reset_force(&mut self) {
 		for n in &mut self.nodes {
 			n.f = vec2(0.0, 0.0);
 		}
+	}
+
+	pub fn kinematic_update(&mut self, dt: f32) {
+
+		for n in &mut self.nodes {
+			n.v += n.f * dt / n.mass;
+			n.pos += n.v * dt;
+		}
+	}
+
+	pub fn friction_update(&mut self, friction: f32) {
+		for n in &mut self.nodes {
+			n.f -= n.v * friction;
+		}
+	}
+
+	pub fn spring_update(&mut self) {
+		if self.max_adjacency == 0.0 { return; }
 
 		for b in 0..self.nodes.len() {
 			for a in (b+1)..self.nodes.len() {
@@ -133,10 +146,31 @@ impl<T> Graph<T> {
 		}
 
 		
-		for n in &mut self.nodes {
-			n.f -= n.v * friction;
-			n.v += n.f * dt / n.mass;
-			n.pos += n.v * dt;
+	}
+
+	pub fn separate_nodes_update(&mut self, target: f32, force: f32) {
+		
+		for b in 0..self.nodes.len() {
+			for a in (b+1)..self.nodes.len() {
+				
+				let direction = (self.nodes[b].pos.x - self.nodes[a].pos.x, self.nodes[b].pos.y - self.nodes[a].pos.y);
+				let dist = direction.0.hypot(direction.1);
+				let direction = (direction.0 / dist, direction.1 / dist);
+
+				let delta = if dist < target {
+					dist - target
+				} else {
+					0.0
+				};
+				
+				self.nodes[a].f.x += force * delta * direction.0;
+				self.nodes[a].f.y += force * delta * direction.1;
+			
+				self.nodes[b].f.x -= force * delta * direction.0;
+				self.nodes[b].f.y -= force * delta * direction.1;
+			}
 		}
+
+
 	}
 }
