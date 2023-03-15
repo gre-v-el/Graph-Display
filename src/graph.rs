@@ -48,9 +48,11 @@ impl<T> Graph<T> {
 		nearest
 	}
 
-	pub fn drag_node(&mut self, node: usize, pos: Vec2) {
-		let node_pos = self.nodes[node].pos;
-		self.nodes[node].f += (pos - node_pos)*0.5;
+	pub fn drag_node(&mut self, node: usize, pos: Vec2, strength: f32) {
+		// let node_pos = self.nodes[node].pos;
+		// self.nodes[node].f += (pos - node_pos)*strength;
+		self.nodes[node].pos = pos;
+		self.nodes[node].v = vec2(0.0, 0.0);
 	}
 
 	pub fn set_adjacency(&mut self, i: usize, j: usize, v: f32) {
