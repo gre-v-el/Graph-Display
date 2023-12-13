@@ -17,7 +17,7 @@ async fn main() {
 	let mut controls = Controls::new();
 	
 	let mut graph = generate_random_graph();
-	// let mut graph = generate_cloth(10);
+	// let mut graph = generate_cloth(8);
 
 	let mut selected = 0;
 
@@ -37,7 +37,7 @@ async fn main() {
 
 		if is_key_down(KeyCode::R) {
 			graph = generate_random_graph();
-			// graph = generate_cloth(10);
+			// graph = generate_cloth(15);
 		}
 
 		if is_mouse_button_pressed(MouseButton::Left) {
@@ -54,10 +54,10 @@ async fn main() {
 fn generate_random_graph() -> Graph<usize> {
 	let mut graph = Graph::<usize>::new();
 
-	for i in 0..30 {
+	for i in 0..25 {
 		graph.add_node(i, rand::gen_range(-10.0, 10.0), rand::gen_range(-10.0, 10.0));
 	}
-	for _ in 0..50 {
+	for _ in 0..30 {
 		let i = rand::gen_range(0, graph.num_nodes());
 		let j = rand::gen_range(0, graph.num_nodes());
 
